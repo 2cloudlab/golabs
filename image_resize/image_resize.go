@@ -1,4 +1,4 @@
-package ImageResize
+package main
 
 import (
 	"image"
@@ -12,6 +12,8 @@ type ImageSource interface {
 	Write(fileLocation string, img *image.NRGBA) error
 }
 
+// Local Source is used for unit tests at your computer
+
 type LocalSource struct {
 }
 
@@ -21,6 +23,37 @@ func (s LocalSource) Read(fileLocation string) (image.Image, error) {
 
 func (s LocalSource) Write(fileLocation string, img *image.NRGBA) error {
 	return imaging.Save(img, fileLocation)
+}
+
+// S3 source is used for unit tests at CICD
+
+type S3Source struct {
+}
+
+func (s S3Source) Read(fileLocation string) (image.Image, error) {
+	return imaging.Open(fileLocation)
+}
+
+func (s S3Source) Write(fileLocation string, img *image.NRGBA) error {
+	return imaging.Save(img, fileLocation)
+}
+
+type SourceType int
+
+const (
+	Local = iota + 1
+	S3
+)
+
+func CreateStorage(st SourceType) ImageSource {
+	switch st {
+	case Local:
+		return LocalSource{}
+	case S3:
+		return S3Source{}
+	default:
+		return nil
+	}
 }
 
 func ResizeImage(width int, srcLocation string, dstLocation string, source ImageSource) {
